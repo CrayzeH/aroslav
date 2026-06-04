@@ -430,36 +430,63 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/login', (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    if (!email || !password) {
-        res.status(400).json({ message: 'Введите email и пароль' });
-        return;
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Введите email и пароль' });
+  }
+
+  db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+    if (err) {
+      console.error('DB ERROR:', err);
+      return res.status(500).json({ error: err.message });
+    }
+    if (!user) {
+      return res.status(401).json({ message: 'Неверный email или пароль' });
     }
 
-    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        if (!user) {
-            res.status(401).json({ message: 'Неверный email или пароль' });
-            return;
-        }
+    let validPassword;
+    try {
+      validPassword = await bcrypt.compare(password, user.password);
+    } catch (e) {
+      console.error('BCRYPT ERROR:', e);
+      return res.status(500).json({ message: 'Ошибка проверки пароля' });
+    }
 
-        const validPassword = await bcrypt.compare(password, user.password);
-        if (!validPassword) {
-            res.status(401).json({ message: 'Неверный email или пароль' });
-            return;
+    if (!validPassword) {
+      return res.status(401).json({ message: 'Неверный email или пароль' });
+    }
+
+    req.session.userId = user.id;
+    req.session.userName = user.name;
+    req.session.userRole = user.role;
+
+    req.session.save(err => {
+      if (err) {
+        console.error('SESSION SAVE ERROR:', err);
+        return res.status(500).json({ message: 'Ошибка сохранения сессии' });
+      }
+
+      console.log('SESSION DATA:', {
+        userId: req.session.userId,
+        userName: req.session.userName,
+        userRole: req.session.userRole
+      });
+
+      res.json({
+        message: 'Вход выполнен',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role
         }
-
-        req.session.userId = user.id;
-        req.session.userName = user.name;
-        req.session.userRole = user.role;
-
-        res.json({ message: 'Вход выполнен', user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role } });
+      });
     });
+  });
 });
+
 
 app.post('/api/auth/logout', (req, res) => {
     req.session.destroy((err) => {
