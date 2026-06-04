@@ -1003,6 +1003,6 @@ app.use((req, res) => {
 });
 
 // Запуск
-app.listen(PORT, "localhost", () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server started on http://${HOST}:${PORT}`);
 });
