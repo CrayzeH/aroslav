@@ -47,7 +47,7 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         secure: isProduction,
-        httpOnly: true,
+        httpOnly: false,
         sameSite: isProduction ? 'none' : 'lax',
         maxAge: 1000 * 60 * 60 * 24
     }
@@ -1003,6 +1003,6 @@ app.use((req, res) => {
 });
 
 // Запуск
-app.listen(PORT, HOST, () => {
+app.listen(PORT, "localhost", () => {
     console.log(`Server started on http://${HOST}:${PORT}`);
 });
